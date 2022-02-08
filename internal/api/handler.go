@@ -6,6 +6,7 @@ import (
 	"html/template"
 	"io"
 	"net/http"
+	"strconv"
 	"sync"
 
 	"github.com/gorilla/mux"
@@ -14,8 +15,8 @@ import (
 type Config interface {
 	DurationInterval() (int, int)
 	SetDurationInterval(min, max int) error
-	ErrorsPercentage() int
-	SetErrorsPercentage(value int) error
+	ErrorsPercentage() float64
+	SetErrorsPercentage(value float64) error
 }
 
 type Handler struct {
@@ -99,7 +100,7 @@ func (h *Handler) handleRoot(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Content-Type", " text/html")
 
 	type Data struct {
-		ErrorsPercentage    int
+		ErrorsPercentage    float64
 		MinDurationInterval int
 		MaxDurationInterval int
 	}
@@ -155,7 +156,8 @@ func (h *Handler) handleSetDurationInterval(w http.ResponseWriter, r *http.Reque
 }
 
 func (h *Handler) handleGetErrorsPercentage(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "%d\n", h.Config.ErrorsPercentage())
+	s := strconv.FormatFloat(h.Config.ErrorsPercentage(), 'f', -1, 64)
+	fmt.Fprintf(w, "%s\n", s)
 }
 
 func (h *Handler) handleSetErrorsPercentage(w http.ResponseWriter, r *http.Request) {
@@ -165,7 +167,7 @@ func (h *Handler) handleSetErrorsPercentage(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	value, err := parseInt(string(data))
+	value, err := strconv.ParseFloat(string(data), 64)
 	if err != nil {
 		httpError(w, http.StatusBadRequest, "parse errors percentage: %v", err)
 		return

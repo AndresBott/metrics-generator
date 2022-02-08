@@ -9,7 +9,7 @@ type Config struct {
 	mu               sync.RWMutex
 	minDuration      int
 	maxDuration      int
-	errorsPercentage int
+	errorsPercentage float64
 }
 
 func (c *Config) DurationInterval() (int, int) {
@@ -39,11 +39,11 @@ func (c *Config) SetDurationInterval(minDuration, maxDuration int) error {
 	return nil
 }
 
-func (c *Config) ErrorsPercentage() int {
+func (c *Config) ErrorsPercentage() float64 {
 	return c.errorsPercentage
 }
 
-func (c *Config) SetErrorsPercentage(errorsPercentage int) error {
+func (c *Config) SetErrorsPercentage(errorsPercentage float64) error {
 	if errorsPercentage < 0 || errorsPercentage > 100 {
 		return fmt.Errorf("value is not a valid percentage")
 	}

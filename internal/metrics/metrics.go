@@ -40,7 +40,7 @@ func (g *Generator) Run(ctx context.Context) error {
 }
 
 func (g *Generator) shouldFailRequest() bool {
-	return rand.Intn(100) < g.Config.ErrorsPercentage()
+	return float64(rand.Intn(100)) < g.Config.ErrorsPercentage()
 }
 
 func (g *Generator) randomDuration() float64 {

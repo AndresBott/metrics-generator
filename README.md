@@ -81,8 +81,8 @@ Read the current errors percentage:
 curl http://localhost:8080/-/config/errors-percentage
 ```
 
-Simulate the error rate to be 25%:
+Simulate the error rate to be 25.5%:
 
 ```
-curl -X PUT http://localhost:8080/-/config/errors-percentage -d 25
+curl -X PUT http://localhost:8080/-/config/errors-percentage -d 25.5
 ```

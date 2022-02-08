@@ -16,8 +16,8 @@ import (
 type mockConfig struct {
 	doDurationInterval    func() (int, int)
 	doSetDurationInterval func(min, max int) error
-	doErrorsPercentage    func() int
-	doSetErrorsPercentage func(value int) error
+	doErrorsPercentage    func() float64
+	doSetErrorsPercentage func(value float64) error
 }
 
 func (c mockConfig) DurationInterval() (int, int) {
@@ -28,11 +28,11 @@ func (c mockConfig) SetDurationInterval(min, max int) error {
 	return c.doSetDurationInterval(min, max)
 }
 
-func (c mockConfig) ErrorsPercentage() int {
+func (c mockConfig) ErrorsPercentage() float64 {
 	return c.doErrorsPercentage()
 }
 
-func (c mockConfig) SetErrorsPercentage(value int) error {
+func (c mockConfig) SetErrorsPercentage(value float64) error {
 	return c.doSetErrorsPercentage(value)
 }
 func TestHandlerRoot(t *testing.T) {
@@ -40,8 +40,8 @@ func TestHandlerRoot(t *testing.T) {
 		doDurationInterval: func() (int, int) {
 			return 2, 4
 		},
-		doErrorsPercentage: func() int {
-			return 10
+		doErrorsPercentage: func() float64 {
+			return 0.2
 		},
 	}
 
@@ -54,6 +54,11 @@ func TestHandlerRoot(t *testing.T) {
 	}
 
 	want := "Request time duration: 2s - 4s"
+	if !strings.Contains(string(data), want) {
+		t.Errorf("index page does not contain expected string:%s", want)
+	}
+
+	want = "Generated Error percentage: 0.2%"
 	if !strings.Contains(string(data), want) {
 		t.Errorf("index page does not contain expected string:%s", want)
 	}
@@ -130,32 +135,32 @@ func TestHandlerSetDurationIntervalConfigError(t *testing.T) {
 
 func TestHandlerGetErrorsPercentage(t *testing.T) {
 	config := mockConfig{
-		doErrorsPercentage: func() int {
-			return 12
+		doErrorsPercentage: func() float64 {
+			return 12.02
 		},
 	}
 
 	response := doGetErrorsPercentageRequest(handlerForConfig(config))
 
 	checkStatusCode(t, response, http.StatusOK)
-	checkBody(t, response, "12\n")
+	checkBody(t, response, "12.02\n")
 }
 
 func TestHandlerSetErrorsPercentage(t *testing.T) {
-	var errorsPercentage int
+	var errorsPercentage float64
 
 	config := mockConfig{
-		doSetErrorsPercentage: func(value int) error {
+		doSetErrorsPercentage: func(value float64) error {
 			errorsPercentage = value
 			return nil
 		},
 	}
 
-	response := doSetErrorsPercentageRequest(handlerForConfig(config), strings.NewReader("12"))
+	response := doSetErrorsPercentageRequest(handlerForConfig(config), strings.NewReader("12.5"))
 
 	checkStatusCode(t, response, http.StatusOK)
 	checkBody(t, response, "OK\n")
-	checkIntEqual(t, "errors percentage", errorsPercentage, 12)
+	checkFloatEqual(t, "errors percentage", errorsPercentage, 12.5)
 }
 
 func TestHandlerSetErrorsPercentageInvalid(t *testing.T) {
@@ -176,7 +181,7 @@ func TestHandlerSetErrorsPercentageReadError(t *testing.T) {
 
 func TestHandlerSetErrorsPercentageConfigError(t *testing.T) {
 	config := mockConfig{
-		doSetErrorsPercentage: func(value int) error {
+		doSetErrorsPercentage: func(value float64) error {
 			return errors.New("error")
 		},
 	}
@@ -254,5 +259,13 @@ func checkIntEqual(t *testing.T, name string, got, wanted int) {
 
 	if got != wanted {
 		t.Fatalf("invalid %s: wanted %d, got %d", name, wanted, got)
+	}
+}
+
+func checkFloatEqual(t *testing.T, name string, got, wanted float64) {
+	t.Helper()
+
+	if got != wanted {
+		t.Fatalf("invalid %s: wanted %f, got %f", name, wanted, got)
 	}
 }
