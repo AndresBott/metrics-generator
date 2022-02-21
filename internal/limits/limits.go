@@ -3,6 +3,7 @@ package limits
 import (
 	"fmt"
 	"sync"
+	"time"
 )
 
 type Config struct {
@@ -10,6 +11,8 @@ type Config struct {
 	minDuration      int
 	maxDuration      int
 	errorsPercentage float64
+	sleepDuration    time.Duration
+	reqHour          int
 }
 
 func (c *Config) DurationInterval() (int, int) {
@@ -52,6 +55,30 @@ func (c *Config) SetErrorsPercentage(errorsPercentage float64) error {
 	defer c.mu.Unlock()
 
 	c.errorsPercentage = errorsPercentage
+
+	return nil
+}
+
+func (c *Config) RequestsHour() int {
+	return c.reqHour
+}
+
+func (c *Config) SleepDuration() time.Duration {
+	return c.sleepDuration
+}
+
+func (c *Config) SetRequestsHour(reqHour int) error {
+
+	if reqHour <= 0 {
+		return fmt.Errorf("requests per hour is less than or equal to zero")
+	}
+
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	nanos := int64(time.Hour*time.Nanosecond) / int64(reqHour)
+	c.sleepDuration = time.Duration(nanos)
+	c.reqHour = reqHour
 
 	return nil
 }

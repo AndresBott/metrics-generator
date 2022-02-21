@@ -20,6 +20,9 @@ Generated metrics can be scraped on the <a href="/metrics">/metrics</a> endpoint
     <li>
         Request time duration: {{ .MinDurationInterval }}s - {{ .MaxDurationInterval }}s
     </li>
+    <li>
+        Requests per hour: {{ .ReqHour }}
+    </li>
 </ul>
 
 <h4>Quick reference</h4>
@@ -47,6 +50,11 @@ Read the current errors percentage:
 Simulate the error rate to be 25.5%:
 <pre>
     curl -X PUT http://localhost:8080/-/config/errors-percentage -d 25.5
+</pre>
+
+Simulate the request rate to be 2000/h
+<pre>
+    curl -X PUT http://localhost:8080/-/config/requests-hour -d 2000
 </pre>
 
 

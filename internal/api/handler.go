@@ -17,6 +17,8 @@ type Config interface {
 	SetDurationInterval(min, max int) error
 	ErrorsPercentage() float64
 	SetErrorsPercentage(value float64) error
+	RequestsHour() int
+	SetRequestsHour(reqHour int) error
 }
 
 type Handler struct {
@@ -38,6 +40,7 @@ func (h *Handler) setupHandlers() {
 	h.setupHealthHandler(router)
 	h.setupDurationIntervalHandlers(router)
 	h.setupErrorsPercentageHandlers(router)
+	h.setupRequestsHourHandlers(router)
 	h.setupMetricsHandler(router)
 	h.setupRootHandler(router)
 
@@ -86,6 +89,20 @@ func (h *Handler) setupErrorsPercentageHandlers(router *mux.Router) {
 		HandlerFunc(h.handleSetErrorsPercentage)
 }
 
+func (h *Handler) setupRequestsHourHandlers(router *mux.Router) {
+	sub := router.
+		PathPrefix("/-/config/requests-hour").
+		Subrouter()
+
+	sub.
+		Methods(http.MethodGet).
+		HandlerFunc(h.handleGetRequestsHour)
+
+	sub.
+		Methods(http.MethodPut).
+		HandlerFunc(h.handleSetRequestsHour)
+}
+
 func (h *Handler) setupMetricsHandler(router *mux.Router) {
 	router.
 		Methods(http.MethodGet).
@@ -103,6 +120,7 @@ func (h *Handler) handleRoot(w http.ResponseWriter, r *http.Request) {
 		ErrorsPercentage    float64
 		MinDurationInterval int
 		MaxDurationInterval int
+		ReqHour             int
 	}
 
 	minD, maxD := h.Config.DurationInterval()
@@ -111,6 +129,7 @@ func (h *Handler) handleRoot(w http.ResponseWriter, r *http.Request) {
 		ErrorsPercentage:    h.Config.ErrorsPercentage(),
 		MinDurationInterval: minD,
 		MaxDurationInterval: maxD,
+		ReqHour:             h.Config.RequestsHour(),
 	}
 
 	tmpl, err := template.New("index").Parse(index)
@@ -183,4 +202,29 @@ func (h *Handler) handleSetErrorsPercentage(w http.ResponseWriter, r *http.Reque
 
 func httpError(w http.ResponseWriter, code int, format string, args ...interface{}) {
 	http.Error(w, fmt.Sprintf(format, args...), code)
+}
+
+func (h *Handler) handleGetRequestsHour(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprintf(w, "%d\n", h.Config.RequestsHour())
+}
+
+func (h *Handler) handleSetRequestsHour(w http.ResponseWriter, r *http.Request) {
+	data, err := io.ReadAll(r.Body)
+	if err != nil {
+		httpError(w, http.StatusInternalServerError, "read body: %v", err)
+		return
+	}
+
+	value, err := strconv.Atoi(string(data))
+	if err != nil {
+		httpError(w, http.StatusBadRequest, "parse requests hour: %v", err)
+		return
+	}
+
+	if err := h.Config.SetRequestsHour(value); err != nil {
+		httpError(w, http.StatusBadRequest, "set requests hour: %v", err)
+		return
+	}
+
+	fmt.Fprintln(w, "OK")
 }

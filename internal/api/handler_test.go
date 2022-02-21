@@ -18,6 +18,8 @@ type mockConfig struct {
 	doSetDurationInterval func(min, max int) error
 	doErrorsPercentage    func() float64
 	doSetErrorsPercentage func(value float64) error
+	doReqHours            func() int
+	doSetReqHours         func(value int) error
 }
 
 func (c mockConfig) DurationInterval() (int, int) {
@@ -35,6 +37,13 @@ func (c mockConfig) ErrorsPercentage() float64 {
 func (c mockConfig) SetErrorsPercentage(value float64) error {
 	return c.doSetErrorsPercentage(value)
 }
+func (c mockConfig) RequestsHour() int {
+	return c.doReqHours()
+}
+func (c mockConfig) SetRequestsHour(value int) error {
+	return c.doSetReqHours(value)
+}
+
 func TestHandlerRoot(t *testing.T) {
 	config := mockConfig{
 		doDurationInterval: func() (int, int) {
@@ -42,6 +51,9 @@ func TestHandlerRoot(t *testing.T) {
 		},
 		doErrorsPercentage: func() float64 {
 			return 0.2
+		},
+		doReqHours: func() int {
+			return 2
 		},
 	}
 
@@ -59,6 +71,11 @@ func TestHandlerRoot(t *testing.T) {
 	}
 
 	want = "Generated Error percentage: 0.2%"
+	if !strings.Contains(string(data), want) {
+		t.Errorf("index page does not contain expected string:%s", want)
+	}
+
+	want = "Requests per hour: 2"
 	if !strings.Contains(string(data), want) {
 		t.Errorf("index page does not contain expected string:%s", want)
 	}
@@ -197,6 +214,43 @@ func handlerForConfig(config api.Config) http.Handler {
 	}
 }
 
+func TestHandlerGetReqHour(t *testing.T) {
+	config := mockConfig{
+		doReqHours: func() int {
+			return 15
+		},
+	}
+
+	response := doGetReqHour(handlerForConfig(config))
+
+	checkStatusCode(t, response, http.StatusOK)
+	checkBody(t, response, "15\n")
+}
+
+func TestHandlerSetReqHour(t *testing.T) {
+	var reqHour int
+
+	config := mockConfig{
+		doSetReqHours: func(value int) error {
+			reqHour = value
+			return nil
+		},
+	}
+
+	response := doSetReqHour(handlerForConfig(config), strings.NewReader("4"))
+
+	checkStatusCode(t, response, http.StatusOK)
+	checkBody(t, response, "OK\n")
+	checkIntEqual(t, "errors percentage", reqHour, 4)
+}
+
+func TestHandlerSetReqHourReadError(t *testing.T) {
+	config := mockConfig{}
+	response := doSetReqHour(handlerForConfig(config), strings.NewReader("skywalker"))
+
+	checkStatusCode(t, response, http.StatusBadRequest)
+}
+
 func doGetDurationIntervalRequest(handler http.Handler) *http.Response {
 	return doRequest(handler, http.MethodGet, "/-/config/duration-interval")
 }
@@ -211,6 +265,14 @@ func doGetErrorsPercentageRequest(handler http.Handler) *http.Response {
 
 func doSetErrorsPercentageRequest(handler http.Handler, body io.Reader) *http.Response {
 	return doRequestWithBody(handler, http.MethodPut, "/-/config/errors-percentage", body)
+}
+
+func doGetReqHour(handler http.Handler) *http.Response {
+	return doRequest(handler, http.MethodGet, "/-/config/requests-hour")
+}
+
+func doSetReqHour(handler http.Handler, body io.Reader) *http.Response {
+	return doRequestWithBody(handler, http.MethodPut, "/-/config/requests-hour", body)
 }
 
 func doIndexRequest(handler http.Handler) *http.Response {

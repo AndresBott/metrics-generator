@@ -31,7 +31,7 @@ func (g *Generator) Run(ctx context.Context) error {
 		}
 
 		select {
-		case <-time.After(1 * time.Second):
+		case <-time.After(g.Config.SleepDuration()):
 			continue
 		case <-ctx.Done():
 			return ctx.Err()
@@ -40,7 +40,8 @@ func (g *Generator) Run(ctx context.Context) error {
 }
 
 func (g *Generator) shouldFailRequest() bool {
-	return float64(rand.Intn(100)) < g.Config.ErrorsPercentage()
+	f := float64(rand.Intn(100000)) / 1000
+	return f < g.Config.ErrorsPercentage()
 }
 
 func (g *Generator) randomDuration() float64 {

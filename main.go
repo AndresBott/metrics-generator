@@ -45,6 +45,7 @@ func run() error {
 	flag.StringVar(&g.address, "addr", ":8080", "The address to listen to")
 	flag.IntVar(&g.minDuration, "duration-min", 1, "Minimum request duration")
 	flag.IntVar(&g.maxDuration, "duration-max", 10, "Maximum request duration")
+	flag.IntVar(&g.reqHour, "requests-hour", 1000, "Metric generation rate")
 	flag.Float64Var(&g.errorsPercentage, "errors-percentage", 10, "Which percentage of the requests will fail")
 	flag.Parse()
 
@@ -55,6 +56,7 @@ type metricsGenerator struct {
 	address          string
 	minDuration      int
 	maxDuration      int
+	reqHour          int
 	errorsPercentage float64
 }
 
@@ -83,6 +85,10 @@ func (g *metricsGenerator) buildLimitsConfig() (*limits.Config, error) {
 
 	if err := config.SetErrorsPercentage(g.errorsPercentage); err != nil {
 		return nil, fmt.Errorf("set errors percentage: %v", err)
+	}
+
+	if err := config.SetRequestsHour(g.reqHour); err != nil {
+		return nil, fmt.Errorf("set request hour: %v", err)
 	}
 
 	return &config, nil
